@@ -7,13 +7,11 @@ from dotenv import load_dotenv
 class Chessbot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
-        super().__init__(command_prefix="!", intents=intents)
+        intents.message_content = True
+        super().__init__(command_prefix="/", intents=intents)
 
     async def setup_hook(self):
-        # 2. C'est l'étape cruciale : on synchronise les commandes avec Discord
-        # Cela permet à Discord de "connaître" tes commandes pour les afficher avec le /
         await self.tree.sync()
-        print("✨ Les commandes slash ont été synchronisées !")
 
 
 load_dotenv()
@@ -22,27 +20,27 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
 
-client = discord.Client(intents=intents)
+bot = Chessbot()
 
 
-@client.event
+@bot.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    print(f'We have logged in as {bot.user}')
 
 
-@client.event
-async def on_message(message):
-    match message.content:
-        case "profile":
-            print("ok")
-    if message.author == client.user:
-        return
-
-    if message.content.startswith('$hello'):
-        await message.channel.send('Hello!')
+@bot.tree.command(name="linked", description="Link your chesscom account")
+async def linked(interaction: discord.Interaction, unsername: str):
+    await interaction.response.send_message(unsername)
 
 
-client.run(TOKEN)
+@bot.tree.command(name="clear", description="Clear k messages")
+@discord.app_commands.checks.has_permissions(manage_messages=True)
+async def clear(interaction: discord.Interaction, k: int):
+    await interaction.response.defer(ephemeral=True)
+    await interaction.channel.purge(limit=k)
+    await interaction.delete_original_response()
+
+bot.run(TOKEN)
 
 # embed = discord.Embed(
 #     title=f"♟️ Profil Échecs de moi",
